@@ -124,14 +124,13 @@ class BatterySoCForecastConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
 
         if user_input is not None:
-            try:
-                return self.async_update_reload_abort(
-                    entry=config_entry,
-                    data_updates=user_input,
-                )
-            except Exception as e:
-                _LOGGER.error("Error updating config entry: %s", e)
-                errors["base"] = "unknown"
+            # Update the config entry with new data
+            self.hass.config_entries.async_update_entry(
+                config_entry,
+                data=user_input,
+            )
+            await self.hass.config_entries.async_reload(config_entry.entry_id)
+            return self.async_abort(reason="reconfigure_successful")
         else:
             user_input = {
                 CONF_BATTERY_SOC_ENTITY: config_entry.data.get(CONF_BATTERY_SOC_ENTITY, ""),

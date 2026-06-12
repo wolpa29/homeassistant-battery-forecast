@@ -368,8 +368,6 @@ class BatterySoCForecastSensor(SensorEntity):
 
             iso_end = linear_end_time.strftime("%Y-%m-%dT%H:%M:%S")
             forecast_data.append([iso_end, float(end_soc)])
-        else:
-            _LOGGER.error("Neither PV forecast nor linear mode was executed - this is a bug")
 
         # Update sensor state
         self._state = round(battery_soc_percent, 1)

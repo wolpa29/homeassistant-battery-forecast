@@ -153,11 +153,17 @@ class BatterySoCForecastSensor(SensorEntity):
 
     async def async_update_forecast(self, _now: datetime.datetime | None = None) -> None:
         """Update the forecast based on current sensor values."""
+        _LOGGER.debug("Starting forecast update...")
         try:
             # Read sensor values
             battery_soc_state = self.hass.states.get(self._battery_soc_entity)
             discharge_w_state = self.hass.states.get(self._discharge_w_entity)
             charge_w_state = self.hass.states.get(self._charge_w_entity)
+
+            _LOGGER.debug("Raw sensor states - battery_soc: %s, discharge_w: %s, charge_w: %s",
+                battery_soc_state.state if battery_soc_state else "None",
+                discharge_w_state.state if discharge_w_state else "None",
+                charge_w_state.state if charge_w_state else "None")
 
             if any(s is None or s.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) for s in (battery_soc_state, discharge_w_state, charge_w_state)):
                 _LOGGER.warning("Canceled forecast: missing sensor data - battery_soc=%s, discharge_w=%s, charge_w=%s",
@@ -169,6 +175,9 @@ class BatterySoCForecastSensor(SensorEntity):
             battery_soc_percent = float(battery_soc_state.state)
             discharge_w = float(discharge_w_state.state)
             charge_w = float(charge_w_state.state)
+
+            _LOGGER.debug("Parsed values - SOC: %.1f%%, Discharge: %s W, Charge: %s W",
+                battery_soc_percent, discharge_w, charge_w)
 
         except (TypeError, ValueError, AttributeError) as e:
             _LOGGER.error("Canceled forecast: invalid sensor data - %s", e)
@@ -379,6 +388,7 @@ class BatterySoCForecastSensor(SensorEntity):
         _LOGGER.debug("Forecast complete - mode: %s, SOC: %.1f%%, empty: %s, full: %s, remaining: %.2fh",
             self._mode, self._state, time_empty, time_full, remaining_time_h)
         self.async_write_ha_state()
+        _LOGGER.debug("Forecast update finished successfully")
 
     async def async_will_remove_from_hass(self) -> None:
         """Cleanup when entity is removed."""

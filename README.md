@@ -17,6 +17,20 @@ Two modes are available:
 
 Configure entities and select your mode during setup via Settings -> Devices & Services -> Add Integration.
 
+## Debug Logging
+
+To see detailed logs for troubleshooting, add this to your `configuration.yaml`:
+
+```yaml
+logger:
+  default: info
+  logs:
+    custom_components.battery_soc_forecast.sensor: debug
+    custom_components.battery_soc_forecast.config_flow: debug
+```
+
+Restart Home Assistant after adding the logger configuration.
+
 ## Sensor Attributes
 
 The sensor exposes forecast data as attributes: `forecast`, `empty_at`, `full_at`, `remaining_time`, `mode`.

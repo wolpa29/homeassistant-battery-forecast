@@ -160,7 +160,8 @@ class BatterySoCForecastSensor(SensorEntity):
             charge_w_state = self.hass.states.get(self._charge_w_entity)
 
             if any(s is None or s.state in (STATE_UNAVAILABLE, STATE_UNKNOWN) for s in (battery_soc_state, discharge_w_state, charge_w_state)):
-                _LOGGER.warning("Canceled forecast: missing sensor data")
+                _LOGGER.warning("Canceled forecast: missing sensor data - battery_soc=%s, discharge_w=%s, charge_w=%s",
+                    battery_soc_state, discharge_w_state, charge_w_state)
                 self._attr_available = False
                 self.async_write_ha_state()
                 return
@@ -169,8 +170,8 @@ class BatterySoCForecastSensor(SensorEntity):
             discharge_w = float(discharge_w_state.state)
             charge_w = float(charge_w_state.state)
 
-        except (TypeError, ValueError, AttributeError):
-            _LOGGER.warning("Canceled forecast: invalid sensor data")
+        except (TypeError, ValueError, AttributeError) as e:
+            _LOGGER.error("Canceled forecast: invalid sensor data - %s", e)
             self._attr_available = False
             self.async_write_ha_state()
             return
@@ -192,11 +193,11 @@ class BatterySoCForecastSensor(SensorEntity):
 
         # Validate values
         if discharge_w < 0 or charge_w < 0:
-            _LOGGER.warning("Canceled forecast: charge or discharge cannot be negative")
+            _LOGGER.error("Canceled forecast: charge or discharge cannot be negative - discharge_w=%s, charge_w=%s", discharge_w, charge_w)
             return
 
         if discharge_w > 0 and charge_w > 0:
-            _LOGGER.warning("Canceled forecast: charge and discharge > 0 at the same time")
+            _LOGGER.error("Canceled forecast: charge and discharge > 0 at the same time - discharge_w=%s, charge_w=%s", discharge_w, charge_w)
             return
 
         # Calculate usable energy
@@ -204,6 +205,9 @@ class BatterySoCForecastSensor(SensorEntity):
         left_soc_percent = self._max_soc - battery_soc_percent
         usable_kwh = (usable_soc_percent / 100.0) * self._battery_max_kwh
         left_kwh = (left_soc_percent / 100.0) * self._battery_max_kwh
+
+        _LOGGER.debug("Battery SOC: %.1f%%, Usable: %.2f kWh (%.1f%%), Left: %.2f kWh (%.1f%%)",
+            battery_soc_percent, usable_kwh, usable_soc_percent, left_kwh, left_soc_percent)
 
         iso_now = now.strftime("%Y-%m-%dT%H:%M:%S")
         forecast_data = []
@@ -224,21 +228,26 @@ class BatterySoCForecastSensor(SensorEntity):
         pv_forecast_data = []
         current_load_w = 0.0
 
+        _LOGGER.debug("Advanced mode: %s, PV entity: '%s', Load entity: '%s'",
+            self._use_advanced_mode, self._pv_forecast_entity, self._load_entity)
+
         if self._use_advanced_mode and self._pv_forecast_entity and self._load_entity:
             try:
                 load_state = self.hass.states.get(self._load_entity)
                 if load_state and load_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
                     current_load_w = float(load_state.state)
+                    _LOGGER.debug("Current load: %s W", current_load_w)
 
                 pv_state = self.hass.states.get(self._pv_forecast_entity)
                 if pv_state and pv_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
                     attrs = pv_state.attributes
                     if attrs and "forecast" in attrs:
                         pv_forecast_data = attrs["forecast"]
+                        _LOGGER.debug("PV forecast data points: %s", len(pv_forecast_data))
                         if len(pv_forecast_data) > 0:
                             use_pv_forecast = True
             except Exception as e:
-                _LOGGER.warning("Could not load PV forecast or load data: %s. Falling back to linear mode.", e)
+                _LOGGER.error("Could not load PV forecast or load data: %s. Falling back to linear mode.", e)
                 use_pv_forecast = False
 
         if use_pv_forecast:
@@ -259,9 +268,11 @@ class BatterySoCForecastSensor(SensorEntity):
                 if dt > now:
                     future_pv.append((dt, float(item[1])))
 
+            _LOGGER.debug("Future PV data points (after filtering): %s", len(future_pv))
             future_pv.sort(key=lambda x: x[0])
 
             if not future_pv:
+                _LOGGER.debug("No future PV data available, falling back to linear mode")
                 use_pv_forecast = False
             else:
                 sim_time = next_slot
@@ -287,6 +298,10 @@ class BatterySoCForecastSensor(SensorEntity):
 
                     energy_change_kwh = (net_power_w / 1000.0) * time_delta_h
                     current_kwh += energy_change_kwh
+
+                    _LOGGER.debug("Sim %s - PV:%sW Load:%sW Net:%sW EnergyChange:%s kWh SOC:%.1f%%",
+                        sim_time.strftime("%H:%M"), pv_power_w, current_load_w, net_power_w,
+                        energy_change_kwh, current_soc)
 
                     # Clamp to min/max limits
                     max_kwh_allowed = self._battery_max_kwh * (self._max_soc / 100.0)
@@ -314,6 +329,7 @@ class BatterySoCForecastSensor(SensorEntity):
 
         if not use_pv_forecast:
             # --- LINEAR MODE (Current Power) ---
+            _LOGGER.debug("Using linear mode - discharge_w=%s W, charge_w=%s W", discharge_w, charge_w)
             self._mode = "Linear (Current Power)"
             kw_rate = 0.0
             end_soc = None
@@ -325,17 +341,20 @@ class BatterySoCForecastSensor(SensorEntity):
                 linear_end_time = now + datetime.timedelta(hours=remaining_time_h)
                 end_soc = self._min_soc
                 time_empty = linear_end_time.strftime("%H:%M")
+                _LOGGER.debug("Discharging mode - rate: %.3f kW, empty at: %s", kw_rate, time_empty)
             elif charge_w > 0:
                 kw_rate = charge_w / 1000.0
                 remaining_time_h = left_kwh / kw_rate
                 linear_end_time = now + datetime.timedelta(hours=remaining_time_h)
                 end_soc = self._max_soc
                 time_full = linear_end_time.strftime("%H:%M")
+                _LOGGER.debug("Charging mode - rate: %.3f kW, full at: %s", kw_rate, time_full)
             else:
                 kw_rate = 0.0
                 remaining_time_h = float(self._max_forecast_h)
                 linear_end_time = now + datetime.timedelta(hours=self._max_forecast_h)
                 end_soc = battery_soc_percent
+                _LOGGER.debug("Idle mode - keeping SOC at %.1f%%", battery_soc_percent)
 
             while next_slot < linear_end_time:
                 iso_key = next_slot.strftime("%Y-%m-%dT%H:%M:%S")
@@ -349,6 +368,8 @@ class BatterySoCForecastSensor(SensorEntity):
 
             iso_end = linear_end_time.strftime("%Y-%m-%dT%H:%M:%S")
             forecast_data.append([iso_end, float(end_soc)])
+        else:
+            _LOGGER.error("Neither PV forecast nor linear mode was executed - this is a bug")
 
         # Update sensor state
         self._state = round(battery_soc_percent, 1)
@@ -357,6 +378,8 @@ class BatterySoCForecastSensor(SensorEntity):
         self._time_full = time_full
         self._remaining_time = remaining_time_h
         self._attr_available = True
+        _LOGGER.debug("Forecast complete - mode: %s, SOC: %.1f%%, empty: %s, full: %s, remaining: %.2fh",
+            self._mode, self._state, time_empty, time_full, remaining_time_h)
         self.async_write_ha_state()
 
     async def async_will_remove_from_hass(self) -> None:

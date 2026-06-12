@@ -51,7 +51,8 @@ class BatterySoCForecastConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     title="Battery SoC Forecast",
                     data=user_input,
                 )
-            except Exception:
+            except Exception as e:
+                _LOGGER.error("Error creating config entry: %s", e)
                 errors["base"] = "unknown"
         else:
             user_input = {}
@@ -93,20 +94,15 @@ class BatterySoCForecastConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_USE_ADVANCED_MODE,
                 default=user_input.get(CONF_USE_ADVANCED_MODE, DEFAULT_USE_ADVANCED_MODE),
             ): bool,
+            vol.Optional(
+                CONF_PV_FORECAST_ENTITY,
+                default=user_input.get(CONF_PV_FORECAST_ENTITY, ""),
+            ): str,
+            vol.Optional(
+                CONF_LOAD_ENTITY,
+                default=user_input.get(CONF_LOAD_ENTITY, ""),
+            ): str,
         })
-
-        advanced_mode = user_input.get(CONF_USE_ADVANCED_MODE, DEFAULT_USE_ADVANCED_MODE)
-        if advanced_mode:
-            schema = schema.extend({
-                vol.Optional(
-                    CONF_PV_FORECAST_ENTITY,
-                    default=user_input.get(CONF_PV_FORECAST_ENTITY, ""),
-                ): str,
-                vol.Optional(
-                    CONF_LOAD_ENTITY,
-                    default=user_input.get(CONF_LOAD_ENTITY, ""),
-                ): str,
-            })
 
         return self.async_show_form(
             step_id="user",

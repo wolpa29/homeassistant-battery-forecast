@@ -6,20 +6,15 @@ import datetime
 import logging
 from typing import Any
 
-import voluptuous as vol
-
 from homeassistant import config_entries
 from homeassistant.components.sensor import (
-    PLATFORM_SCHEMA,
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import entity_platform
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
 from .const import (
     CONF_BATTERY_MAX_KWH,
@@ -31,19 +26,17 @@ from .const import (
     CONF_MAX_SOC,
     CONF_MIN_SOC,
     CONF_PV_FORECAST_ENTITY,
+    CONF_UPDATE_INTERVAL,
     CONF_USE_ADVANCED_MODE,
     DEFAULT_BATTERY_MAX_KWH,
     DEFAULT_MAX_FORECAST_H,
     DEFAULT_MAX_SOC,
     DEFAULT_MIN_SOC,
+    DEFAULT_UPDATE_INTERVAL,
     DEFAULT_USE_ADVANCED_MODE,
-    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-# Update interval: every 5 minutes
-UPDATE_INTERVAL_SECONDS = 300
 
 
 async def async_setup_entry(
@@ -63,13 +56,14 @@ async def async_setup_entry(
         min_soc=entry.data.get(CONF_MIN_SOC, DEFAULT_MIN_SOC),
         max_soc=entry.data.get(CONF_MAX_SOC, DEFAULT_MAX_SOC),
         max_forecast_h=entry.data.get(CONF_MAX_FORECAST_H, DEFAULT_MAX_FORECAST_H),
+        update_interval=entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
         use_advanced_mode=entry.data.get(CONF_USE_ADVANCED_MODE, DEFAULT_USE_ADVANCED_MODE),
     )
     async_add_entities([sensor])
     
     # Schedule periodic updates
     sensor._unsub_update = async_track_time_interval(
-        hass, sensor.async_update_forecast, datetime.timedelta(seconds=UPDATE_INTERVAL_SECONDS)
+        hass, sensor.async_update_forecast, datetime.timedelta(seconds=sensor._update_interval)
     )
     
     # Initial update
@@ -96,6 +90,7 @@ class BatterySoCForecastSensor(SensorEntity):
         min_soc: float,
         max_soc: float,
         max_forecast_h: float,
+        update_interval: int,
         use_advanced_mode: bool,
     ) -> None:
         """Initialize the sensor."""
@@ -113,6 +108,7 @@ class BatterySoCForecastSensor(SensorEntity):
         self._min_soc = min_soc
         self._max_soc = max_soc
         self._max_forecast_h = max_forecast_h
+        self._update_interval = update_interval
         self._use_advanced_mode = use_advanced_mode
 
         # State
@@ -140,7 +136,7 @@ class BatterySoCForecastSensor(SensorEntity):
             "device_class": "battery",
             "state_class": "measurement",
             "generated_at": now.strftime("%Y-%m-%d %H:%M:%S"),
-            "interval_minutes": UPDATE_INTERVAL_SECONDS / 60,
+            "interval_minutes": self._update_interval / 60,
             "forecast": self._forecast_data,
             "empty_at": self._time_empty,
             "full_at": self._time_full,

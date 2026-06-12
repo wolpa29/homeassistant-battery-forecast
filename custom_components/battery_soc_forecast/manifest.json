@@ -1,0 +1,13 @@
+{
+  "domain": "battery_soc_forecast",
+  "name": "Battery SoC Forecast",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://github.com/yourusername/battery_soc_forecast",
+  "integration_type": "system",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/yourusername/battery_soc_forecast/issues",
+  "loggers": [],
+  "requirements": [],
+  "version": "1.0.0"
+}

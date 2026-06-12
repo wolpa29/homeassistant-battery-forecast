@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Battery SoC Forecast Einrichtung",
+        "description": "Konfiguriere deine Batterie- und (optional) PV-Forecast-Entitäten.\\n\\n**Linearer Modus**: Verwendet die aktuelle Lade-/Entladeleistung für eine einfache lineare Vorhersage.\\n**Erweiterter Modus**: Benötigt die [pv_forecast_planner](https://github.com/wolpa29/pv_forecast_planner) Integration. Aktiviere den Schalter unten und gib die PV-Forecast- und Verbrauchs-Entitäten für eine genauere Simulation an.",
+        "data": {
+          "battery_soc_entity": "Batterie SoC Entität",
+          "discharge_w_entity": "Batterie Entladeleistung Entität (W)",
+          "charge_w_entity": "Batterie Ladeleistung Entität (W)",
+          "battery_max_kwh": "Maximale Batteriekapazität (kWh)",
+          "min_soc": "Minimum SoC (%)",
+          "max_soc": "Maximum SoC (%)",
+          "use_advanced_mode": "Erweiterten Modus aktivieren (PV Forecast)",
+          "pv_forecast_entity": "PV Forecast Entität (pv_forecast_planner)",
+          "load_entity": "Stromnetz Verbrauch Entität (W)"
+        }
+      }
+    },
+    "error": {
+      "unknown": "Ein unbekannter Fehler ist aufgetreten. Bitte prüfe die Logs."
+    },
+    "abort": {
+      "single_instance_allowed": "Nur eine Battery SoC Forecast Konfiguration ist erlaubt."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery_soc_forecast": {
+        "name": "Batterie SoC Vorhersage"
+      }
+    }
+  }
+}

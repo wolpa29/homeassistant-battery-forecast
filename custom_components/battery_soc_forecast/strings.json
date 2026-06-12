@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Battery SoC Forecast Setup",
+        "description": "Configure your battery and (optional) PV forecast entities.\\n\\n**Linear Mode**: Uses current charge/discharge power for a simple linear forecast.\\n**Advanced Mode**: Requires the [pv_forecast_planner](https://github.com/wolpa29/pv_forecast_planner) integration. Enable the toggle below and provide the PV forecast & load entities for a more accurate simulation.",
+        "data": {
+          "battery_soc_entity": "Battery SoC Entity",
+          "discharge_w_entity": "Battery Discharge Power Entity (W)",
+          "charge_w_entity": "Battery Charge Power Entity (W)",
+          "battery_max_kwh": "Battery Max Capacity (kWh)",
+          "min_soc": "Minimum SoC (%)",
+          "max_soc": "Maximum SoC (%)",
+          "use_advanced_mode": "Enable Advanced Mode (PV Forecast)",
+          "pv_forecast_entity": "PV Forecast Entity (pv_forecast_planner)",
+          "load_entity": "Grid Load / Consumption Entity (W)"
+        }
+      }
+    },
+    "error": {
+      "unknown": "An unknown error occurred. Please check the logs."
+    },
+    "abort": {
+      "single_instance_allowed": "Only one Battery SoC Forecast configuration is allowed."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery_soc_forecast": {
+        "name": "Battery SoC Forecast"
+      }
+    }
+  }
+}

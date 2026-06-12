@@ -15,13 +15,29 @@
           "pv_forecast_entity": "PV Forecast Entity (pv_forecast_planner)",
           "load_entity": "Grid Load / Consumption Entity (W)"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Battery SoC Forecast",
+        "description": "Update your configuration settings.",
+        "data": {
+          "battery_soc_entity": "Battery SoC Entity",
+          "discharge_w_entity": "Battery Discharge Power Entity (W)",
+          "charge_w_entity": "Battery Charge Power Entity (W)",
+          "battery_max_kwh": "Battery Max Capacity (kWh)",
+          "min_soc": "Minimum SoC (%)",
+          "max_soc": "Maximum SoC (%)",
+          "use_advanced_mode": "Enable Advanced Mode (PV Forecast)",
+          "pv_forecast_entity": "PV Forecast Entity (pv_forecast_planner)",
+          "load_entity": "Grid Load / Consumption Entity (W)"
+        }
       }
     },
     "error": {
       "unknown": "An unknown error occurred. Please check the logs."
     },
     "abort": {
-      "single_instance_allowed": "Only one Battery SoC Forecast configuration is allowed."
+      "single_instance_allowed": "Only one Battery SoC Forecast configuration is allowed.",
+      "reconfigure_successful": "Configuration updated successfully."
     }
   },
   "entity": {

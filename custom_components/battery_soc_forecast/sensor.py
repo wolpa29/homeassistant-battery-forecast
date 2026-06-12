@@ -299,10 +299,6 @@ class BatterySoCForecastSensor(SensorEntity):
                     energy_change_kwh = (net_power_w / 1000.0) * time_delta_h
                     current_kwh += energy_change_kwh
 
-                    _LOGGER.debug("Sim %s - PV:%sW Load:%sW Net:%sW EnergyChange:%s kWh SOC:%.1f%%",
-                        sim_time.strftime("%H:%M"), pv_power_w, current_load_w, net_power_w,
-                        energy_change_kwh, current_soc)
-
                     # Clamp to min/max limits
                     max_kwh_allowed = self._battery_max_kwh * (self._max_soc / 100.0)
                     min_kwh_allowed = self._battery_max_kwh * (self._min_soc / 100.0)
@@ -319,6 +315,10 @@ class BatterySoCForecastSensor(SensorEntity):
 
                     current_soc = (current_kwh / self._battery_max_kwh) * 100.0
                     current_soc = max(self._min_soc, min(self._max_soc, current_soc))
+
+                    _LOGGER.debug("Sim %s - PV:%sW Load:%sW Net:%sW EnergyChange:%s kWh SOC:%.1f%%",
+                        sim_time.strftime("%H:%M"), pv_power_w, current_load_w, net_power_w,
+                        energy_change_kwh, current_soc)
 
                     iso_key = sim_time.strftime("%Y-%m-%dT%H:%M:%S")
                     forecast_data.append([iso_key, round(current_soc, 1)])
